@@ -3,59 +3,52 @@ from socket import *
 # In order to terminate the program
 import sys
 
-
 def webServer(port=13331):
     serverSocket = socket(AF_INET, SOCK_STREAM)
 
     # Prepare a server socket
-    serverSocket.bind(("", port))
+    serverSocket.bind(("127.0.0.1", port))
 
-    # Listen for incoming connections
+    # Start listing on port
     serverSocket.listen(1)
-
-    print(f"Server is listening on port {port}")
 
     while True:
         # Establish the connection
-        print('Ready to serve...')
-        connectionSocket, addr = serverSocket.accept()  # Accept incoming connections
+        print("Ready to serve...")
+
+        # accept incoming connection
+        connectionSocket, addr = serverSocket.accept()
 
         try:
-            message = connectionSocket.recv(1024).decode()  # Receive the HTTP request from the client
+            # handle messages received, sent by client
+            message = connectionSocket.recv(1024).decode()
             filename = message.split()[1]
 
-            # Open the client requested file
-            f = open(filename[1:], "rb")  # Open the file in binary mode
+            # opens the client requested file in binary mode
+            f = open(filename[1:], "rb")
 
-            outputdata = f.read()  # Read the content of the file
-
-            # Send HTTP headers for a valid request (200 OK)
-            response_headers = "HTTP/1.1 200 OK\r\n"
-            response_headers += "Content-Type: text/html; charset=UTF-8\r\n"
-            response_headers += "\r\n"  # Blank line to indicate the end of headers
-
-            # Send the headers to the client
-            connectionSocket.send(response_headers.encode())
+            # Headers for validating http request
+            connectionSocket.send(b"HTTP/1.1 200 OK\r\n")
+            connectionSocket.send(b"Content-Type: text/html; charset=UTF-8\r\n")
+            # send blank line to end headers
+            connectionSocket.send(b"\r\n")
 
             # Send the content of the requested file to the client
-            for i in range(0, len(outputdata)):
-                connectionSocket.send(outputdata[i:i + 1])
+            for i in f:
+                connectionSocket.send(i)
+            # closing the connection socket
+            connectionSocket.close()
 
-            connectionSocket.close()  # Close the connection socket
-
-        except IOError:
-            # Send response message for invalid request due to the file not being found (404 Not Found)
-            response_headers = "HTTP/1.1 404 Not Found\r\n"
-            response_headers += "\r\n"  # Blank line to indicate the end of headers
-
-            # Send the headers to the client
-            connectionSocket.send(response_headers.encode())
-
-            # Send a custom error message as the content
-            error_message = "<html><body><h1>404 Not Found</h1></body></html>"
-            connectionSocket.send(error_message.encode())
-
-            connectionSocket.close()  # Close the connection socket
+        except Exception:
+            # Headers for handeling bad requests
+            connectionSocket.send(b"HTTP/1.1 404 Not Found\r\n")
+            connectionSocket.send(b"Content-Type: text/html; charset=UTF-8\r\n")
+            connectionSocket.send(b"\r\n")
+            connectionSocket.send(b"<html><head></head><body><h1>404 Not Found</h1></body></html>\r\n")
+            connectionSocket.close()
+    # Commenting out the below, as its technically not required and some students have moved it erroneously in the While loop. DO NOT DO THAT OR YOURE GONNA HAVE A BAD TIME.
+    serverSocket.close()
+    sys.exit()  # Terminate the program after sending the corresponding data
 
 
 if __name__ == "__main__":
